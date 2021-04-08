@@ -2,7 +2,7 @@ using System;
 
 namespace Paginator.NET
 {
-	public class PageInfo
+	public class PaginationBuilder
 	{
 		#region FIELDS
 
@@ -12,10 +12,13 @@ namespace Paginator.NET
 		/// </summary>
 		public static int DefaultMaxPagesCount = 13; // including 1rst and last 
 
-		int[] _pages = new int[0]; // helps for count==0 ?
+
 		public readonly int CurrentPage;
-		public readonly int CurrentPageStartIndex;
+		public readonly int Index; // CurrentPageItemsIndex
+		public readonly int Count; // ItemsOnCurrentPage
 		public readonly int ItemsPerPage;
+		public readonly int TotalItemCount;
+		public readonly int TotalPageCount;
 
 		/// <summary>
 		/// Maximum number of pages to display.
@@ -23,16 +26,15 @@ namespace Paginator.NET
 		/// that way spans on each side will be equal.
 		/// </summary>
 		public readonly int MaxPagesCount = DefaultMaxPagesCount; // including 1rst and last 
-		public readonly int TotalItemCount;
-		public readonly int TotalPageCount;
-		public readonly int ItemsOnThisPage;
 		public readonly bool ShowFirstLastPages = true;
+
 
 		/// <summary>
 		/// The array of pages for display, the number of which is limited by 
 		/// <see cref="MaxPagesCount"/>.
 		/// </summary>
 		public int[] Pages => _pages;
+		int[] _pages = Array.Empty<int>(); // helps for count==0 ?
 
 		/// <summary>
 		/// The count of the final display <see cref="Pages"/>. This is different from <see cref="TotalPageCount"/>.
@@ -52,7 +54,7 @@ namespace Paginator.NET
 		/// <param name="maxDisplayPages">The number of pages you want to generate (links or what not) for. 
 		/// This sets the maximum length of the <see cref="Pages"/> array of numbers. The final number can be lower
 		/// when not enough items from input values made up that many pages.</param>
-		public PageInfo(
+		public PaginationBuilder(
 			int totalItemCount,
 			int itemsPerPage,
 			int currentPage,
@@ -75,11 +77,11 @@ namespace Paginator.NET
 			if(TotalPageCount < 0)
 				throw new ArgumentOutOfRangeException();
 			else if(TotalPageCount > 0) {
-				CurrentPageStartIndex = ItemsPerPage * (CurrentPage - 1);
+				Index = ItemsPerPage * (CurrentPage - 1);
 				SetPageNumbers();
 			}
 
-			ItemsOnThisPage = TotalPageCount < 2 || CurrentPage < TotalPageCount
+			Count = TotalPageCount < 2 || CurrentPage < TotalPageCount
 					? ItemsPerPage
 					: ItemsPerPage - ((TotalPageCount * ItemsPerPage) - TotalItemCount);
 		}
@@ -106,7 +108,7 @@ namespace Paginator.NET
 			return totalPageCount;
 		}
 
-		public static PageInfo GetPagingInfo(
+		public static PaginationBuilder GetPagingInfo(
 			int totalItemCount,
 			int itemsPerPage,
 			int currentPage,
@@ -117,7 +119,7 @@ namespace Paginator.NET
 			if(GetTotalPageCountAndValidateParams(totalItemCount, itemsPerPage, fixPageOutOfRange, ref currentPage) < 0)
 				return null;
 
-			return new PageInfo(totalItemCount, itemsPerPage, currentPage, maxDisplayPages);
+			return new PaginationBuilder(totalItemCount, itemsPerPage, currentPage, maxDisplayPages);
 		}
 
 		#endregion
@@ -128,18 +130,34 @@ namespace Paginator.NET
 		public bool IsPageInRange(int page)
 			=> page > 0 && page <= TotalPageCount;
 
-		public bool GapAfterStart
+		public bool HasGapAfterStart
 			=> PagesCount > 2 && _pages[1] > 2; // let's just read page 2, bypass if first page blah blah
 
-		public bool GapBeforeEnd
-			=> PagesCount > 2 && _pages[_pages.Length - 2] < (TotalPageCount - 1);
+		public bool HasGapBeforeEnd
+			=> PagesCount > 2 && _pages[^2] < (TotalPageCount - 1);
 
 
-
+		public PaginationInfo ToPaginationInfo()
+		{
+			return new PaginationInfo() {
+				CurrentPage = CurrentPage,
+				Index = Index,
+				HasGapAfterStart = HasGapAfterStart,
+				HasGapBeforeEnd = HasGapBeforeEnd,
+				IsLastPage = IsLastPage,
+				Count = Count,
+				ItemsPerPage = ItemsPerPage,
+				PageNumbers = _pages ?? Array.Empty<int>(),
+				PagesCount = PagesCount,
+				ShowFirstLastPages = ShowFirstLastPages,
+				TotalItemCount = TotalItemCount,
+				TotalPageCount = TotalPageCount
+			};
+		}
 
 		// --- CORE FUNCTIONS ---
 
-		public void SetPageNumbers()
+		void SetPageNumbers()
 		{
 			if(TotalPageCount == 0)
 				return;

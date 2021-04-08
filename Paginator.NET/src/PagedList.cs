@@ -7,7 +7,7 @@ namespace Paginator.NET
 {
 	public class PagedList<T> : IList<T> where T : class
 	{
-		public PageInfo PagingInfo { get; set; }
+		public PaginationBuilder PagingInfo { get; set; }
 
 		public IList<T> Items { get; set; }
 
@@ -30,7 +30,7 @@ namespace Paginator.NET
 			if(list == null || totalItemsCount == 0)
 				return list;
 
-			list.Items = getRange(list.PagingInfo.CurrentPageStartIndex, list.PagingInfo.ItemsOnThisPage);
+			list.Items = getRange(list.PagingInfo.Index, list.PagingInfo.Count);
 			return list;
 		}
 
@@ -46,7 +46,7 @@ namespace Paginator.NET
 			if(list == null || totalItemsCount == 0)
 				return list;
 
-			list.Items = await getRange(list.PagingInfo.CurrentPageStartIndex, list.PagingInfo.ItemsOnThisPage);
+			list.Items = await getRange(list.PagingInfo.Index, list.PagingInfo.Count);
 			return list;
 		}
 
@@ -62,7 +62,7 @@ namespace Paginator.NET
 			if(list == null || totalItemsCount == 0)
 				return list;
 
-			list.Items = await getRange(list.PagingInfo.CurrentPageStartIndex, list.PagingInfo.ItemsOnThisPage);
+			list.Items = await getRange(list.PagingInfo.Index, list.PagingInfo.Count);
 			return list;
 		}
 
@@ -74,7 +74,7 @@ namespace Paginator.NET
 			bool fixPageOutOfRange)
 		{
 			var list = new PagedList<T> {
-				PagingInfo = PageInfo.GetPagingInfo(
+				PagingInfo = PaginationBuilder.GetPagingInfo(
 					totalItemsCount, itemsPerPage, page, maxDisplayPages, fixPageOutOfRange)
 			};
 
